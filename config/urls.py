@@ -1,4 +1,4 @@
-from django.urls import path, includeg
+from django.urls import path, include
 
 """
 URL configuration for config project.
@@ -22,4 +22,5 @@ from django.urls import path
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('locations.urls')),
+    path('api/', include('places.urls')),
 ]

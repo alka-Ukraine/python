@@ -2,3 +2,5 @@
 venv/
 */__pycache__/
 *.pyc
+*.py[cod]
+db_backup.sqlite3

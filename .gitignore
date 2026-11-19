@@ -1,4 +1,6 @@
-__pycache__/
-*.py[cod]
+.env
 venv/
+*/__pycache__/
+*.pyc
+*.py[cod]
 db_backup.sqlite3

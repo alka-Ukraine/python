@@ -1,4 +1,6 @@
+
 from rest_framework.generics import ListAPIView
+from rest_framework.viewsets import ModelViewSet
 from django.db.models import Q
 
 from .models import Location, SearchHistory
@@ -30,3 +32,17 @@ class LocationListView(ListAPIView):
 class SearchHistoryListView(ListAPIView):
     queryset = SearchHistory.objects.order_by('-created_at')
     serializer_class = SearchHistorySerializer
+
+
+class InterestingPlaceViewSet(ModelViewSet):
+    queryset = Location.objects.all()
+    serializer_class = LocationSerializer
+
+    # DELETE тимчасово вимкнено.
+    http_method_names = ['get', 'post', 'put', 'patch', 'head', 'options']
+
+    # Логіку видалення поки не активуємо:
+    # def destroy(self, request, *args, **kwargs):
+    #     instance = self.get_object()
+    #     self.perform_destroy(instance)
+    #     return Response(status=status.HTTP_204_NO_CONTENT)

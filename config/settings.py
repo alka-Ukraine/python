@@ -26,7 +26,11 @@ SECRET_KEY = 'django-insecure-#=j4oz#@_w2#w5usv2mk#k9lww8d3+%eivx$6gg1why602a(i#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('ALLOWED_HOSTS', '').split(',')
+    if host.strip()
+]
 
 _cors_url = os.environ.get('CORS_URL', '').strip()
 CORS_ALLOWED_ORIGINS = [_cors_url] if _cors_url else []

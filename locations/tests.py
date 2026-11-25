@@ -34,3 +34,24 @@ class CityPostPermissionsTests(APITestCase):
         })
         self.assertEqual(response.status_code, 201)
         self.assertEqual(CityPost.objects.get(pk=response.data['id']).author, self.other)
+
+
+class JwtCityPostFlowTests(APITestCase):
+    def test_registered_user_can_publish_with_jwt(self):
+        registration = self.client.post(reverse('register'), {
+            'username': 'traveler', 'password': 'long-unique-test-password-421',
+        })
+        self.assertEqual(registration.status_code, 201)
+
+        login = self.client.post(reverse('token_obtain_pair'), {
+            'username': 'traveler', 'password': 'long-unique-test-password-421',
+        })
+        self.assertEqual(login.status_code, 200)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
+
+        created = self.client.post(reverse('city-posts-list'), {
+            'city': 'Київ', 'title': 'Улюблений маршрут', 'body': 'Прогулянка центром',
+        })
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual(created.data['author'], 'traveler')
+        self.assertEqual(self.client.get(reverse('city-posts-list'), {'city': 'Київ'}).data[0]['id'], created.data['id'])

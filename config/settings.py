@@ -36,8 +36,8 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
-_cors_url = os.environ.get('CORS_URL', '').strip()
-CORS_ALLOWED_ORIGINS = [_cors_url] if _cors_url else []
+_cors_urls = os.environ.get('CORS_URL', '').strip()
+CORS_ALLOWED_ORIGINS = [url.strip() for url in _cors_urls.split(',') if url.strip()]
 
 
 # Application definition

@@ -1,27 +1,17 @@
-
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (
-    LocationListView,
-    SearchHistoryListView,
-    InterestingPlaceViewSet,
-    RegisterView,
-    LoginView,
-)
+from .views import CityCoverViewSet, CityPostViewSet, InterestingPlaceViewSet, LocationListView, LoginView, RegisterView, SearchHistoryListView
 
 router = DefaultRouter()
-router.register(
-    r'interesting-places',
-    InterestingPlaceViewSet,
-    basename='interesting-places'
-)
+router.register('interesting-places', InterestingPlaceViewSet, basename='interesting-places')
+router.register('city-covers', CityCoverViewSet, basename='city-covers')
+router.register('city-posts', CityPostViewSet, basename='city-posts')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('locations/', LocationListView.as_view()),
-    path('search-history/', SearchHistoryListView.as_view()),
-
+    path('locations/', LocationListView.as_view(), name='locations'),
+    path('search-history/', SearchHistoryListView.as_view(), name='search-history'),
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
 ]

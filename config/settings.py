@@ -11,7 +11,9 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,10 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#=j4oz#@_w2#w5usv2mk#k9lww8d3+%eivx$6gg1why602a(i#'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'travely-local-development-key-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').strip().lower() in {'1', 'true', 'yes', 'on'}
+if not DEBUG and SECRET_KEY == 'travely-local-development-key-change-me':
+    raise ImproperlyConfigured('DJANGO_SECRET_KEY is required when DEBUG is false.')
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -32,8 +36,8 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
-_cors_url = os.environ.get('CORS_URL', '').strip()
-CORS_ALLOWED_ORIGINS = [_cors_url] if _cors_url else []
+_cors_urls = os.environ.get('CORS_URL', '').strip()
+CORS_ALLOWED_ORIGINS = [url.strip() for url in _cors_urls.split(',') if url.strip()]
 
 
 # Application definition
@@ -42,6 +46,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_simplejwt.token_blacklist',
     'locations',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -141,6 +146,23 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024
+
+_media_bucket = os.environ.get('AWS_STORAGE_BUCKET_NAME', '').strip()
+if _media_bucket:
+    INSTALLED_APPS.append('storages')
+    _s3_options = {'bucket_name': _media_bucket, 'location': 'travely-media'}
+    if os.environ.get('AWS_S3_REGION_NAME'):
+        _s3_options['region_name'] = os.environ['AWS_S3_REGION_NAME']
+    if os.environ.get('AWS_S3_ENDPOINT_URL'):
+        _s3_options['endpoint_url'] = os.environ['AWS_S3_ENDPOINT_URL']
+    STORAGES = {
+        'default': {'BACKEND': 'storages.backends.s3.S3Storage', 'OPTIONS': _s3_options},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
 
 
 # Email
@@ -152,9 +174,29 @@ MAILERS = {
     },
 }
 
-if not DEBUG:
-    REST_FRAMEWORK = {
-    "DEFAULT_RENDERER_CLASSES": [
-        "rest_framework.renderers.JSONRenderer",
-    ],
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny',),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '1000/day',
+        'user': '10000/day',
+        'login': '10/minute',
+        'register': '10/hour',
+    },
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }

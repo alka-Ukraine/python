@@ -151,6 +151,19 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024
 
+_media_bucket = os.environ.get('AWS_STORAGE_BUCKET_NAME', '').strip()
+if _media_bucket:
+    INSTALLED_APPS.append('storages')
+    _s3_options = {'bucket_name': _media_bucket, 'location': 'travely-media'}
+    if os.environ.get('AWS_S3_REGION_NAME'):
+        _s3_options['region_name'] = os.environ['AWS_S3_REGION_NAME']
+    if os.environ.get('AWS_S3_ENDPOINT_URL'):
+        _s3_options['endpoint_url'] = os.environ['AWS_S3_ENDPOINT_URL']
+    STORAGES = {
+        'default': {'BACKEND': 'storages.backends.s3.S3Storage', 'OPTIONS': _s3_options},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration

@@ -15,6 +15,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('city', models.CharField(max_length=100, unique=True)),
+                ('city_key', models.CharField(editable=False, max_length=100, unique=True)),
                 ('image', models.ImageField(upload_to='city-covers/')),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('uploaded_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
@@ -25,6 +26,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('city', models.CharField(db_index=True, max_length=100)),
+                ('city_key', models.CharField(db_index=True, editable=False, max_length=100)),
                 ('title', models.CharField(max_length=160)),
                 ('body', models.TextField()),
                 ('image', models.ImageField(blank=True, upload_to='city-posts/')),

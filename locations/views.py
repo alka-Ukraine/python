@@ -1,6 +1,6 @@
 import logging
 
-from django.db import DatabaseError
+from django.db import DatabaseError, connection
 from django.db.models import Q
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -41,6 +41,15 @@ class LocationListView(ListAPIView):
 
     def get_queryset(self):
         search = self.request.query_params.get('search', '').strip()
+        if search and connection.vendor == 'sqlite':
+            term = search.casefold()
+            matches = [
+                pk for pk, name, city, country, category in Location.objects.values_list(
+                    'pk', 'name', 'city', 'country', 'category'
+                )
+                if any(term in (value or '').casefold() for value in (name, city, country, category))
+            ]
+            return Location.objects.filter(pk__in=matches)
         return Location.objects.filter(
             Q(name__icontains=search)
             | Q(city__icontains=search)
@@ -71,7 +80,7 @@ class CityCoverViewSet(ModelViewSet):
     def get_queryset(self):
         queryset = CityCover.objects.select_related('uploaded_by').all()
         city = self.request.query_params.get('city', '').strip()
-        return queryset.filter(city__iexact=city) if city else queryset
+        return queryset.filter(city_key=city.casefold()) if city else queryset
 
     def perform_create(self, serializer):
         serializer.save(uploaded_by=self.request.user)
@@ -85,7 +94,7 @@ class CityPostViewSet(ModelViewSet):
     def get_queryset(self):
         queryset = CityPost.objects.select_related('author').order_by('-created_at')
         city = self.request.query_params.get('city', '').strip()
-        return queryset.filter(city__iexact=city) if city else queryset
+        return queryset.filter(city_key=city.casefold()) if city else queryset
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

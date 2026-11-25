@@ -33,6 +33,7 @@ class SearchHistory(models.Model):
 
 class CityCover(models.Model):
     city = models.CharField(max_length=100, unique=True)
+    city_key = models.CharField(max_length=100, unique=True, editable=False)
     image = models.ImageField(upload_to='city-covers/')
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     updated_at = models.DateTimeField(auto_now=True)
@@ -40,9 +41,15 @@ class CityCover(models.Model):
     def __str__(self):
         return self.city
 
+    def save(self, *args, **kwargs):
+        self.city = self.city.strip()
+        self.city_key = self.city.casefold()
+        super().save(*args, **kwargs)
+
 
 class CityPost(models.Model):
     city = models.CharField(max_length=100, db_index=True)
+    city_key = models.CharField(max_length=100, db_index=True, editable=False)
     title = models.CharField(max_length=160)
     body = models.TextField()
     image = models.ImageField(upload_to='city-posts/', blank=True)
@@ -52,3 +59,8 @@ class CityPost(models.Model):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        self.city = self.city.strip()
+        self.city_key = self.city.casefold()
+        super().save(*args, **kwargs)

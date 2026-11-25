@@ -32,7 +32,7 @@ class CityCoverSerializer(serializers.ModelSerializer):
         city = value.strip()
         if not city:
             raise serializers.ValidationError('Вкажіть місто.')
-        matches = CityCover.objects.filter(city__iexact=city)
+        matches = CityCover.objects.filter(city_key=city.casefold())
         if self.instance:
             matches = matches.exclude(pk=self.instance.pk)
         if matches.exists():

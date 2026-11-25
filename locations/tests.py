@@ -61,9 +61,16 @@ class JwtCityPostFlowTests(APITestCase):
 
 
 class LocationSearchTests(APITestCase):
+    def test_cyrillic_search_is_case_insensitive(self):
+        Location.objects.create(name='Софійський собор', country='Україна', city='Київ', latitude=50.45, longitude=30.52)
+        response = self.client.get(reverse('locations'), {'search': 'київ'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
     def test_search_still_returns_locations_when_history_write_fails(self):
         Location.objects.create(name='Софійський собор', country='Україна', city='Київ', latitude=50.45, longitude=30.52)
-        with patch('locations.views.SearchHistory.objects.create', side_effect=DatabaseError('read only')):
-            response = self.client.get(reverse('locations'), {'search': 'Київ'})
+        with self.assertLogs('locations.views', level='ERROR'):
+            with patch('locations.views.SearchHistory.objects.create', side_effect=DatabaseError('read only')):
+                response = self.client.get(reverse('locations'), {'search': 'Київ'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)

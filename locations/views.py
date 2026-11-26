@@ -4,7 +4,7 @@ from django.db import DatabaseError, connection
 from django.db.models import Q
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.generics import CreateAPIView, ListAPIView
+from rest_framework.generics import CreateAPIView, ListCreateAPIView, ListAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -25,9 +25,18 @@ class IsOwnerOrReadOnly(BasePermission):
         )
 
 
-class LocationListView(ListAPIView):
-    queryset = Location.objects.all()
+class IsLocationAuthorOrReadOnly(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return request.method in ('GET', 'HEAD', 'OPTIONS') or (
+            request.user.is_authenticated
+            and (request.user.is_staff or obj.submitted_by_id == request.user.id)
+        )
+
+
+class LocationListView(ListCreateAPIView):
+    queryset = Location.objects.select_related('submitted_by').all()
     serializer_class = LocationSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def list(self, request, *args, **kwargs):
         search = request.query_params.get('search', '').strip()
@@ -49,13 +58,22 @@ class LocationListView(ListAPIView):
                 )
                 if any(term in (value or '').casefold() for value in (name, city, country, category))
             ]
-            return Location.objects.filter(pk__in=matches)
-        return Location.objects.filter(
+            return self.queryset.filter(pk__in=matches)
+        return self.queryset.filter(
             Q(name__icontains=search)
             | Q(city__icontains=search)
             | Q(country__icontains=search)
             | Q(category__icontains=search)
         )
+
+    def perform_create(self, serializer):
+        serializer.save(submitted_by=self.request.user)
+
+
+class LocationDetailView(RetrieveUpdateDestroyAPIView):
+    queryset = Location.objects.select_related('submitted_by').all()
+    serializer_class = LocationSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsLocationAuthorOrReadOnly]
 
 
 class SearchHistoryListView(ListAPIView):
@@ -67,9 +85,12 @@ class SearchHistoryListView(ListAPIView):
 
 
 class InterestingPlaceViewSet(ModelViewSet):
-    queryset = Location.objects.all()
+    queryset = Location.objects.select_related('submitted_by').all()
     serializer_class = LocationSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsLocationAuthorOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(submitted_by=self.request.user)
 
 
 class CityCoverViewSet(ModelViewSet):

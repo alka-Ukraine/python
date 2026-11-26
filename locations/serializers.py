@@ -9,9 +9,12 @@ from .models import CityCover, CityPost, Location, SearchHistory
 
 
 class LocationSerializer(serializers.ModelSerializer):
+    submitted_by = serializers.CharField(source='submitted_by.username', read_only=True)
+
     class Meta:
         model = Location
-        fields = '__all__'
+        fields = ['id', 'name', 'country', 'latitude', 'longitude', 'description', 'city', 'category', 'address', 'submitted_by']
+        read_only_fields = ['id', 'submitted_by']
 
 
 class SearchHistorySerializer(serializers.ModelSerializer):

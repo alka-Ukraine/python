@@ -74,3 +74,40 @@ class LocationSearchTests(APITestCase):
                 response = self.client.get(reverse('locations'), {'search': 'Київ'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+
+
+class LocationPublishingTests(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.author = User.objects.create_user(username='location-author', password='safe-test-password-123')
+        self.other = User.objects.create_user(username='location-other', password='safe-test-password-123')
+
+    def test_member_can_publish_without_coordinates_and_public_can_view(self):
+        self.client.force_authenticate(user=self.author)
+        created = self.client.post(reverse('locations'), {
+            'name': 'Тиха вуличка', 'city': 'Львів', 'country': 'Україна',
+            'description': 'Місце для прогулянки',
+        })
+        self.assertEqual(created.status_code, 201)
+        self.assertIsNone(created.data['latitude'])
+        self.assertEqual(created.data['submitted_by'], self.author.username)
+
+        self.client.force_authenticate(user=None)
+        detail = self.client.get(reverse('location-detail', args=[created.data['id']]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.data['name'], 'Тиха вуличка')
+        self.assertEqual(len(self.client.get(reverse('locations'), {'search': 'львів'}).data), 1)
+
+    def test_only_author_can_edit_location(self):
+        location = Location.objects.create(name='Площа', city='Львів', country='Україна', submitted_by=self.author)
+        detail_url = reverse('location-detail', args=[location.pk])
+        old_detail_url = reverse('interesting-places-detail', args=[location.pk])
+
+        self.client.force_authenticate(user=self.other)
+        self.assertEqual(self.client.patch(detail_url, {'description': 'Чужа зміна'}).status_code, 403)
+        self.assertEqual(self.client.delete(old_detail_url).status_code, 403)
+
+        self.client.force_authenticate(user=self.author)
+        self.assertEqual(self.client.patch(detail_url, {'description': 'Мій опис'}).status_code, 200)
+        location.refresh_from_db()
+        self.assertEqual(location.description, 'Мій опис')

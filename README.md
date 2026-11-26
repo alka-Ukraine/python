@@ -12,6 +12,8 @@ make up
 
 API буде на `http://localhost:8000/api/`, документація — на `http://localhost:8000/swagger/`. Docker запускає PostgreSQL, виконує міграції та зберігає завантажені фото у volume `media_data`. `make shell` відкриває Django shell.
 
+Для запуску без Docker можна задати `SQLITE_DB_PATH` до локального файлу бази даних поза репозиторієм, виконати `python manage.py migrate` і `python manage.py runserver`. Якщо змінну не задано, використовується `db.sqlite3` у корені репозиторію.
+
 ## Нові маршрути
 
 - `POST /api/register/` — реєстрація.
